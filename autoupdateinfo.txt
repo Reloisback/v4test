@@ -1,7 +1,7 @@
 Version= V4.0
 Documants;
 main.py = V4.0
-cogs/alchannel.py = V4.1
+cogs/alchannel.py = V4.0
 cogs/alliance.py = V4.0
 cogs/alliance_member_operations.py = V4.0
 cogs/bot_operations.py = V4.0
