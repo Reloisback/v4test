@@ -35,25 +35,25 @@ async def check_and_update_files():
             print(Fore.RED + "Failed to fetch version information from GitHub" + Style.RESET_ALL)
             return False
 
+        if not os.path.exists('cogs'):
+            os.makedirs('cogs')
+            print(Fore.GREEN + "cogs folder created" + Style.RESET_ALL)
+
         content = response.text.split('\n')
-        current_version = content[0].split('=')[1].strip()
         documents = {}
         main_py_updated = False
 
-        
         doc_section = False
-        for line in content[1:]:
+        for line in content:
             if line.startswith("Documants;"):
                 doc_section = True
                 continue
-            elif line.startswith("Updated Info;"):
+            elif doc_section and line.startswith("Updated Info;"):
                 break
-            
-            if doc_section and '=' in line:
-                file_name, version = line.split('=')
-                documents[file_name.strip()] = version.strip()
+            elif doc_section and '=' in line:
+                file_name, version = [x.strip() for x in line.split('=')]
+                documents[file_name] = version
 
-        
         update_notes = []
         update_section = False
         for line in content:
@@ -63,113 +63,85 @@ async def check_and_update_files():
             if update_section and line.strip():
                 update_notes.append(line.strip())
 
-        
         updates_needed = []
         with sqlite3.connect('db/settings.sqlite') as conn:
             cursor = conn.cursor()
             
-            
-            cursor.execute("SELECT version FROM versions WHERE is_main = 1")
-            db_version = cursor.fetchone()
-            
-            if not db_version:
+            for file_name, new_version in documents.items():
+                cursor.execute("SELECT version FROM versions WHERE file_name = ?", (file_name,))
+                current_file_version = cursor.fetchone()
                 
-                print(Fore.YELLOW + "First time setup detected" + Style.RESET_ALL)
-                for file_name, version in documents.items():
-                    
-                    file_url = f"https://raw.githubusercontent.com/your_username/your_repo/main/{file_name}"
-                    file_response = requests.get(file_url)
-                    
-                    if file_response.status_code == 200:
-                        os.makedirs(os.path.dirname(file_name), exist_ok=True)
-                        with open(file_name, 'w', encoding='utf-8') as f:
-                            f.write(file_response.text)
-                        
-                        cursor.execute("""
-                            INSERT INTO versions (file_name, version, is_main)
-                            VALUES (?, ?, ?)
-                        """, (file_name, version, 1 if file_name == 'main.py' else 0))
-                
-                conn.commit()
-                print(Fore.GREEN + "Initial setup completed successfully" + Style.RESET_ALL)
-                return True
-            
-            elif db_version[0] != current_version:
-                
-                for file_name, new_version in documents.items():
+                if not current_file_version:
+                    updates_needed.append((file_name, new_version))
+                    if file_name == 'main.py':
+                        main_py_updated = True
+                elif current_file_version[0] != new_version:
+                    updates_needed.append((file_name, new_version))
+                    if file_name == 'main.py':
+                        main_py_updated = True
+
+            if updates_needed:
+                print(Fore.YELLOW + "\nUpdates available!" + Style.RESET_ALL)
+                print(Fore.YELLOW + "\nIf this is your first installation and you see File and No version, please update!" + Style.RESET_ALL)
+                print("\nFiles to update:")
+                for file_name, new_version in updates_needed:
                     cursor.execute("SELECT version FROM versions WHERE file_name = ?", (file_name,))
-                    current_file_version = cursor.fetchone()
-                    
-                    if not current_file_version or current_file_version[0] != new_version:
-                        updates_needed.append((file_name, new_version))
-                        if file_name.strip() == 'main.py':
-                            main_py_updated = True
+                    current = cursor.fetchone()
+                    current_version = current[0] if current else "File and No Version"
+                    print(f"• {file_name}: {current_version} -> {new_version}")
 
-                if updates_needed:
-                    print(Fore.YELLOW + "\nNew update available!" + Style.RESET_ALL)
-                    print("\nFiles to be updated:")
+                print("\nUpdate Notes:")
+                for note in update_notes:
+                    print(f"• {note}")
+
+                if main_py_updated:
+                    print(Fore.YELLOW + "\nNOTE: This update includes changes to main.py. Bot will restart after update." + Style.RESET_ALL)
+
+                response = input("\nDo you want to update now? (y/n): ").lower()
+                if response == 'y':
                     for file_name, new_version in updates_needed:
-                        print(f"• {file_name} -> {new_version}")
-                    
-                    print("\nUpdate Notes:")
-                    for note in update_notes:
-                        print(f"• {note}")
-
-                    if main_py_updated:
-                        print(Fore.YELLOW + "\nNOTE: This update includes changes to main.py. Bot will restart after update." + Style.RESET_ALL)
-
-                    response = input("\nDo you want to update now? (y/n): ").lower()
-                    if response == 'y':
-                        
-                        for file_name, new_version in updates_needed:
-                            if file_name.strip() != 'main.py':
-                                file_url = f"https://raw.githubusercontent.com/your_username/your_repo/main/{file_name}"
-                                file_response = requests.get(file_url)
-                                
-                                if file_response.status_code == 200:
-                                    os.makedirs(os.path.dirname(file_name), exist_ok=True)
-                                    with open(file_name, 'w', encoding='utf-8') as f:
-                                        f.write(file_response.text)
-                                    
-                                    cursor.execute("""
-                                        INSERT OR REPLACE INTO versions (file_name, version, is_main)
-                                        VALUES (?, ?, ?)
-                                    """, (file_name, new_version, 0))
-
-                        
-                        if main_py_updated:
-                            main_file_url = "https://raw.githubusercontent.com/your_username/your_repo/main/main.py"
-                            main_response = requests.get(main_file_url)
+                        if file_name.strip() != 'main.py':
+                            file_url = f"https://raw.githubusercontent.com/Reloisback/v4test/refs/heads/main/{file_name}"
+                            file_response = requests.get(file_url)
                             
-                            if main_response.status_code == 200:
-                                
-                                with open('main.py.new', 'w', encoding='utf-8') as f:
-                                    f.write(main_response.text)
-                                
+                            if file_response.status_code == 200:
+                                os.makedirs(os.path.dirname(file_name), exist_ok=True)
+                                with open(file_name, 'w', encoding='utf-8') as f:
+                                    f.write(file_response.text)
                                 
                                 cursor.execute("""
                                     INSERT OR REPLACE INTO versions (file_name, version, is_main)
-                                    VALUES (?, ?, 1)
-                                """, ('main.py', current_version))
-                                
-                                conn.commit()
-                                print(Fore.GREEN + "\nUpdate completed successfully!" + Style.RESET_ALL)
-                                
-                                
-                                if os.path.exists('main.py.bak'):
-                                    os.remove('main.py.bak')
-                                os.rename('main.py', 'main.py.bak')
-                                
-                                
-                                os.rename('main.py.new', 'main.py')
-                                
-                                print(Fore.YELLOW + "\nRestarting bot to apply main.py updates..." + Style.RESET_ALL)
-                                restart_bot()
-                        else:
+                                    VALUES (?, ?, ?)
+                                """, (file_name, new_version, 0))
+
+                    if main_py_updated:
+                        main_file_url = "https://raw.githubusercontent.com/Reloisback/v4test/refs/heads/main/main.py"
+                        main_response = requests.get(main_file_url)
+                        
+                        if main_response.status_code == 200:
+                            with open('main.py.new', 'w', encoding='utf-8') as f:
+                                f.write(main_response.text)
+                            
+                            cursor.execute("""
+                                INSERT OR REPLACE INTO versions (file_name, version, is_main)
+                                VALUES (?, ?, 1)
+                            """, ('main.py', new_version))
+                            
                             conn.commit()
                             print(Fore.GREEN + "\nUpdate completed successfully!" + Style.RESET_ALL)
+                            
+                            if os.path.exists('main.py.bak'):
+                                os.remove('main.py.bak')
+                            os.rename('main.py', 'main.py.bak')
+                            os.rename('main.py.new', 'main.py')
+                            
+                            print(Fore.YELLOW + "\nRestarting bot to apply main.py updates..." + Style.RESET_ALL)
+                            restart_bot()
                     else:
-                        print(Fore.YELLOW + "\nUpdate skipped. Running with existing files." + Style.RESET_ALL)
+                        conn.commit()
+                        print(Fore.GREEN + "\nUpdate completed successfully!" + Style.RESET_ALL)
+                else:
+                    print(Fore.YELLOW + "\nUpdate skipped. Running with existing files." + Style.RESET_ALL)
 
         return False
 
@@ -287,7 +259,7 @@ async def load_cogs():
 @bot.event
 async def on_ready():
     try:
-        print(f"{bot.user} olarak giriş yapıldı!")
+        print(f"Logged in as {bot.user}")
         print("Syncing all commands...")
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} commands!")
