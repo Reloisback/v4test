@@ -1,0 +1,15 @@
+Version= V4.0
+Documants;
+main.py = V4.0
+cogs/alchannel.py = V4.0
+cogs/alliance.py = V4.0
+cogs/alliance_member_operations.py = V4.0
+cogs/bot_operations.py = V4.0
+cogs/control.py = V4.0
+cogs/olddb.py = V4.0
+
+Updated Info;
+- Added new alliance features
+- Improved bot operations menu
+- Fixed various bugs in alliance system
+- Added new admin management features
