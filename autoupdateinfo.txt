@@ -9,7 +9,7 @@ cogs/control.py = V4.0
 cogs/olddb.py = V4.0
 
 Updated Info;
-- Added new alliance features
-- Improved bot operations menu
+- This is a test version
+- Automatic version and update control information
 - Fixed various bugs in alliance system
 - Added new admin management features
