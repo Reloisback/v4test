@@ -1,12 +1,19 @@
 Version= V4.0
 Documants;
 main.py = V4.0
-cogs/alchannel.py = V4.1
+cogs/alchannel.py = V4.0
 cogs/alliance.py = V4.0
 cogs/alliance_member_operations.py = V4.0
 cogs/bot_operations.py = V4.0
-cogs/control.py = V4.0
+cogs/changes.py = V4.0
+cogs/gift_operations.py = V4.0
+cogs/logsystem.py = V4.0
 cogs/olddb.py = V4.0
+cogs/other_features.py = V4.0
+cogs/support_operations.py = V4.0
+cogs/w.py = V4.0
+cogs/wel.py = V4.0
+cogs/control.py = V4.0
 
 Updated Info;
 - This is a test version
