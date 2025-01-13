@@ -106,8 +106,9 @@ async def check_and_update_files():
                             
                             if file_response.status_code == 200:
                                 os.makedirs(os.path.dirname(file_name), exist_ok=True)
-                                with open(file_name, 'w', encoding='utf-8') as f:
-                                    f.write(file_response.text)
+                                content = file_response.text.rstrip('\n')
+                                with open(file_name, 'w', encoding='utf-8', newline='') as f:
+                                    f.write(content)
                                 
                                 cursor.execute("""
                                     INSERT OR REPLACE INTO versions (file_name, version, is_main)
@@ -119,8 +120,9 @@ async def check_and_update_files():
                         main_response = requests.get(main_file_url)
                         
                         if main_response.status_code == 200:
-                            with open('main.py.new', 'w', encoding='utf-8') as f:
-                                f.write(main_response.text)
+                            content = main_response.text.rstrip('\n')
+                            with open('main.py.new', 'w', encoding='utf-8', newline='') as f:
+                                f.write(content)
                             
                             cursor.execute("""
                                 INSERT OR REPLACE INTO versions (file_name, version, is_main)
@@ -149,10 +151,24 @@ async def check_and_update_files():
         print(Fore.RED + f"Error during version check: {e}" + Style.RESET_ALL)
         return False
 
+class CustomBot(commands.Bot):
+    async def on_error(self, event_name, *args, **kwargs):
+        if event_name == "on_interaction":
+            error = sys.exc_info()[1]
+            if isinstance(error, discord.NotFound) and error.code == 10062:
+                return
+            
+        await super().on_error(event_name, *args, **kwargs)
+
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, discord.NotFound) and error.code == 10062:
+            return
+        await super().on_command_error(ctx, error)
+
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='/', intents=intents)
+bot = CustomBot(command_prefix='/', intents=intents)
 
 init(autoreset=True)
 
@@ -251,7 +267,6 @@ setup_version_table()
 async def load_cogs():
     await bot.load_extension("cogs.olddb")
     await bot.load_extension("cogs.control")
-    await bot.load_extension("cogs.alchannel")
     await bot.load_extension("cogs.alliance")
     await bot.load_extension("cogs.alliance_member_operations")
     await bot.load_extension("cogs.bot_operations")
