@@ -255,14 +255,19 @@ async def load_cogs():
     await bot.load_extension("cogs.alliance")
     await bot.load_extension("cogs.alliance_member_operations")
     await bot.load_extension("cogs.bot_operations")
+    await bot.load_extension("cogs.logsystem")
+    await bot.load_extension("cogs.support_operations")
+    await bot.load_extension("cogs.gift_operations")
+    await bot.load_extension("cogs.changes")
+    await bot.load_extension("cogs.w")
+    await bot.load_extension("cogs.wel")
+    await bot.load_extension("cogs.other_features")
 
 @bot.event
 async def on_ready():
     try:
-        print(f"Logged in as {bot.user}")
-        print("Syncing all commands...")
+        print(f"{Fore.GREEN}Logged in as {Fore.CYAN}{bot.user}{Style.RESET_ALL}")
         synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} commands!")
     except Exception as e:
         print(f"Error syncing commands: {e}")
 
