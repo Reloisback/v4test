@@ -15,7 +15,7 @@ cogs/wel.py = V4.0
 cogs/control.py = V4.0
 
 Updated Info;
-- This is a test version
-- Automatic version and update control information
-- Fixed various bugs in alliance system
-- Added new admin management features
+- This V4 is the V4.0 version which is stable
+- Thank you for upgrading to V4
+- If you encounter an error, contact Reloisback on Discord and he can fix the error and update
+- Happy Days
